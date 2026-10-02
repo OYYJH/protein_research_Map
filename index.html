@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分子／蛋白質生成：Few-step × 3D Geometry × Physical Correction 文獻地圖</title>
+<style>
+:root{--bg:#0b1020;--p:#121932;--p2:#182142;--text:#e9eefb;--muted:#aeb8d0;--line:#2c3a67;--blue:#8bb8ff;--green:#9de0c7;--yellow:#ffd28a;--red:#ff9b9b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(#09101f,#0b1020);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;line-height:1.65}
+main{max-width:1220px;margin:auto;padding:34px 24px 80px}h1{font-size:2.2rem;line-height:1.2;margin:0 0 12px}h2{margin-top:42px;padding-bottom:9px;border-bottom:1px solid var(--line)}h3{color:#dce8ff;margin-top:26px}
+p,li{color:var(--muted)}a{color:#a9ccff;text-decoration:none}a:hover{text-decoration:underline}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:linear-gradient(var(--p2),var(--p));border:1px solid var(--line);border-radius:14px;padding:16px}.big{font-size:1.7rem;font-weight:800}
+.note,.good,.bad{padding:14px 16px;border-radius:10px;margin:14px 0}.note{border-left:4px solid var(--yellow);background:#211e17}.good{border-left:4px solid var(--green);background:#14241f}.bad{border-left:4px solid var(--red);background:#29191d}
+table{width:100%;border-collapse:collapse;font-size:.9rem;background:#10172d}th,td{padding:10px;border-bottom:1px solid #26345f;text-align:left;vertical-align:top}th{background:#182246;color:#dfe9ff;position:sticky;top:0}.p1{color:#aeeed5;font-weight:700}.p2{color:#ffd28a;font-weight:700}.p3{color:#c8cfdf}
+.timeline{position:relative;padding-left:30px}.timeline:before{content:"";position:absolute;left:9px;top:0;bottom:0;width:2px;background:#36528f}.t{position:relative;margin:0 0 22px;padding-left:15px}.t:before{content:"";position:absolute;left:-27px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--blue);border:3px solid var(--bg)}.year{font-weight:800;color:#dbe7ff}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}svg{max-width:100%;height:auto;background:#0d1530;border:1px solid var(--line);border-radius:14px}
+details{background:#111831;border:1px solid #28365f;border-radius:10px;padding:10px 12px;margin:8px 0}summary{cursor:pointer;color:#dbe7ff;font-weight:700}
+code{background:#111a34;border:1px solid #26335b;border-radius:5px;padding:2px 5px}.footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:#7f89a3;font-size:.84rem}
+@media(max-width:900px){.grid,.two{grid-template-columns:1fr}table{font-size:.82rem}h1{font-size:1.8rem}}
+</style>
+</head>
+<body><main>
+<h1>分子／蛋白質 3D 生成文獻地圖</h1>
+<p><b>焦點：</b>Few-step generation × 3D representation / SE(3) × physical / geometric constraints × inference-time correction。整理至 <b>2026-10-01</b>。目的不是取代逐篇閱讀，而是先建立技術歷史與研究缺口地圖。</p>
+
+<div class="grid">
+<div class="card"><div class="big">2020–2022</div><h3>3D 幾何基礎</h3><p>SE(3)/E(3) equivariance、GNN、3D molecular diffusion，解決分子在旋轉和平移下應保持一致物理語義的問題。</p></div>
+<div class="card"><div class="big">2023–2024</div><h3>Protein diffusion → Flow</h3><p>FrameDiff、Genie、RFdiffusion、Chroma 建立 backbone generation；FoldFlow / FrameFlow 把 protein generation 推入 SE(3) flow matching。</p></div>
+<div class="card"><div class="big">2025–2026</div><h3>Few-step × Physics</h3><p>ReQFlow、SiD-Protein、SE(3)-MeanFlow 專攻效率；Neural SHAKE、ADMM、ProteinGS 讓幾何／物理約束直接參與生成。</p></div>
+</div>
+
+<h2>一、現在的研究版圖</h2>
+<div class="good"><b>Few-step 本身已不足以構成 novelty。</b> 主線已經從「能不能生成蛋白質」進到「怎麼在 SE(3)、quaternion、latent space 上快速生成」，甚至 ProteinGS 已展示 2-step 並同時 enforce physical validity。</div>
+<p>修改後的方向是：</p>
+<p style="text-align:center;font-size:1.12rem"><b>Few-step → 中間 trajectory 何時開始出現 physical / geometric failure？ → 能否用便宜 signal 提前偵測？ → 是否只在必要時介入？</b></p>
+<div class="note"><b>本次廣泛檢索沒有找到一篇完整同時滿足：</b> few-step protein generation + intermediate physical violation profiling + violation-triggered selective correction + 與 fixed correction / extra NFE 的成本比較。這代表「目前搜尋未發現」，不是證明世界上一定沒有。</div>
+
+<h2>二、技術時間線：怎麼走到今天</h2>
+<div class="timeline">
+<div class="t"><div class="year">2020｜SE(3)-Transformers</div><p><a href="https://proceedings.neurips.cc/paper_files/paper/2020/hash/15231a7ce4ba789d13b722cc5c955834-Abstract.html">NeurIPS 2020</a>：3D attention 對 rotation + translation 保持 equivariance。建立後續 molecular geometry 的語言。</p></div>
+<div class="t"><div class="year">2021｜E(n)-Equivariant GNN</div><p><a href="https://mlanthology.org/icml/2021/satorras2021icml-equivariant/">ICML 2021</a>：用較輕量 message passing 保持旋轉、平移、反射與 permutation equivariance。</p></div>
+<div class="t"><div class="year">2022｜3D molecular diffusion 成形</div><p><a href="https://mlanthology.org/iclr/2022/xu2022iclr-geodiff/">GeoDiff, ICLR 2022</a>；<a href="https://proceedings.mlr.press/v162/hoogeboom22a">Equivariant Diffusion for Molecule Generation in 3D, ICML 2022</a>；<a href="https://proceedings.mlr.press/v162/du22e">Complete Local Frames, ICML 2022</a>。核心從 graph property prediction 轉到「直接生成 3D coordinates / conformations」。</p></div>
+<div class="t"><div class="year">2022–2023｜Protein backbone diffusion 爆發</div><p><a href="https://arxiv.org/abs/2206.04119">SMCDiff</a>、<a href="https://www.nature.com/articles/s43588-023-00440-3">ProteinSGM</a>、<a href="https://proceedings.mlr.press/v202/lin23a.html">Genie, ICML 2023</a>、<a href="https://proceedings.mlr.press/v202/yim23a/yim23a.pdf">FrameDiff, ICML 2023</a>、<a href="https://www.nature.com/articles/s41586-023-06415-8">RFdiffusion</a>、<a href="https://www.nature.com/articles/s41586-023-06728-8">Chroma</a>。Representation 分出 Cα、all-backbone atoms、SE(3) residue frames、graph geometry 等路線。</p></div>
+<div class="t"><div class="year">2023｜Flow Matching 成為另一條主幹</div><p><a href="https://mlanthology.org/iclr/2023/lipman2023iclr-flow/">Flow Matching for Generative Modeling, ICLR 2023</a>：以 vector-field regression 訓練 CNF；可使用 diffusion path，也可用更直接的 OT path。</p></div>
+<div class="t"><div class="year">2023–2024｜Protein → SE(3) Flow</div><p><a href="https://proceedings.iclr.cc/paper_files/paper/2024/hash/618c95f4557c15b253fb0e6f548ea0c0-Abstract-Conference.html">FoldFlow, ICLR 2024</a>：SE(3)-Stochastic Flow Matching；<a href="https://arxiv.org/abs/2310.05297">FrameFlow</a>：相較 FrameDiff 報告約 5× fewer sampling timesteps，且 designability 更高；<a href="https://proceedings.iclr.cc/paper_files/paper/2024/hash/d1f9936d3be6997ffffab692977eebe6-Abstract-Conference.html">Riemannian Flow Matching, ICLR 2024</a>建立 general manifold FM 基礎。</p></div>
+<div class="t"><div class="year">2024｜Representation 擴到 sequence / all-atom</div><p><a href="https://arxiv.org/abs/2405.20313">FoldFlow-2</a> 加入 sequence-conditioned SE(3) flow；<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11228509/">Protpardelle</a>走 all-atom diffusion；<a href="https://www.nature.com/articles/s41586-024-07487-w">AlphaFold 3</a>用 diffusion module 直接操作 raw atom coordinates（主要是 structure prediction，不等同 de novo backbone generation）。</p></div>
+<div class="t"><div class="year">2025｜少步問題從 solver 轉向 long-transition learning</div><p><a href="https://proceedings.iclr.cc/paper_files/paper/2025/hash/559a0998fab1d19b80e7e43a5852401c-Abstract-Conference.html">Shortcut Models, ICLR 2025</a>學 desired step size；<a href="https://arxiv.org/abs/2505.13447">MeanFlow</a>學 average velocity；<a href="https://www.alphaxiv.org/abs/2502.00688">High-Order Matching</a>加入 acceleration / jerk 等 higher-order supervision。</p></div>
+<div class="t"><div class="year">2025｜Protein few-step 形成明確子領域</div><p><a href="https://proceedings.mlr.press/v267/yue25c.html">ReQFlow, ICML 2025</a>：quaternion flow + rectification；<a href="https://arxiv.org/abs/2510.03095">SiD-Protein</a>：直接套 vision distillation 會導致不可接受的低 designability，需要 multistep + inference-time noise modulation，並報告 >20× speedup。</p></div>
+<div class="t"><div class="year">2025｜Physics / geometry 直接進入 generation loop</div><p><a href="https://doi.org/10.1186/s13321-025-01053-w">Neural SHAKE</a>：每個 diffusion step 投影回 constraint manifold；<a href="https://proceedings.mlr.press/v267/feng25s.html">On the Guidance of Flow Matching, ICML 2025</a>建立 general flow guidance 框架；<a href="https://proceedings.mlr.press/v267/lu25b.html">Physical Feedback, ICML 2025</a>用 physical model energy feedback 校準 conformation ensemble；<a href="https://proceedings.mlr.press/v267/zhou25w.html">Energy-Based Flow Matching, ICML 2025</a>把 energy-based view 帶進 3D molecular FM。</p></div>
+<div class="t"><div class="year">2025–2026｜Hard constraints 與 few-step 交會</div><p><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12633033/">Constrained Diffusion + ADMM</a>：predict-clean → proximal feasibility → renoise；<a href="https://arxiv.org/abs/2509.25379">Let Physics Guide Your Protein Flows</a>：physics-motivated unfolding/noising，保 bond、避免 collision。</p></div>
+<div class="t"><div class="year">2026｜2-step + physical validity 真正出現</div><p><a href="https://proceedings.iclr.cc/paper_files/paper/2026/hash/c13954c76bfd454b2810d0a79d1777d6-Abstract-Conference.html">ProteinGS, ICLR 2026</a>：differentiable Gauss-Seidel projection，training + inference enforce physical validity；2-step model 報告可達 200-step baselines 相近 structural accuracy，約 10× wall-clock speedup。<a href="https://arxiv.org/abs/2607.27431">SE(3)-MeanFlow</a>：MeanFlow on Lie groups，few-step regime 優勢更明顯。</p></div>
+<div class="t"><div class="year">2026｜All-atom / latent 持續擴張</div><p><a href="https://proceedings.iclr.cc/paper_files/paper/2026/hash/6e1734c47c0cc899021060d88f69dc65-Abstract-Conference.html">La-Proteina, ICLR 2026</a>：backbone 顯式 + per-residue latent 表示 sequence / atomistic details，做 joint all-atom structure-sequence flow matching。</p></div>
+</div>
+
+<h2>三、核心文獻清單：按用途分組</h2>
+<p><span class="p1">P1＝你的方向必讀</span>；<span class="p2">P2＝建立技術地圖</span>；<span class="p3">P3＝延伸補缺口</span>。</p>
+
+<h3>A. 3D representation / SE(3) / equivariance</h3>
+<table>
+<tr><th>年</th><th>論文</th><th>核心想法</th><th>和題目的關係</th><th>優先</th></tr>
+<tr><td>2020</td><td><a href="https://proceedings.neurips.cc/paper_files/paper/2020/hash/15231a7ce4ba789d13b722cc5c955834-Abstract.html">SE(3)-Transformers</a></td><td>3D self-attention 保持 roto-translation equivariance。</td><td>懂 protein orientation 為什麼不是一般 feature。</td><td class="p1">P1</td></tr>
+<tr><td>2021</td><td><a href="https://mlanthology.org/icml/2021/satorras2021icml-equivariant/">E(n)-Equivariant GNN</a></td><td>更輕量的 equivariant graph message passing。</td><td>回答「是不是 graph？」：graph 是關係；equivariance 是 3D symmetry。</td><td class="p2">P2</td></tr>
+<tr><td>2022</td><td><a href="https://proceedings.mlr.press/v162/du22e">SE(3) GNN with Complete Local Frames</a></td><td>以 local frames 表示 3D 幾何。</td><td>理解 residue frame / local coordinate system。</td><td class="p1">P1</td></tr>
+<tr><td>2024</td><td><a href="https://proceedings.iclr.cc/paper_files/paper/2024/hash/d1f9936d3be6997ffffab692977eebe6-Abstract-Conference.html">Flow Matching on General Geometries</a></td><td>Riemannian FM：把 FM 推到 manifold。</td><td>SE(3)-MeanFlow 的數學脈絡。</td><td class="p2">P2</td></tr>
+</table>
+
+<h3>B. Protein / molecular diffusion</h3>
+<table>
+<tr><th>年</th><th>論文</th><th>表示</th><th>解決的問題</th><th>優先</th></tr>
+<tr><td>2022</td><td><a href="https://mlanthology.org/iclr/2022/xu2022iclr-geodiff/">GeoDiff</a></td><td>atom particles + geometric diffusion</td><td>molecular graph → 3D conformer。</td><td class="p2">P2</td></tr>
+<tr><td>2022</td><td><a href="https://proceedings.mlr.press/v162/hoogeboom22a">Equivariant Diffusion for Molecule Generation in 3D</a></td><td>coordinates + atom types</td><td>聯合生成 3D 座標與 atom categories。</td><td class="p2">P2</td></tr>
+<tr><td>2022/23</td><td><a href="https://arxiv.org/abs/2206.04119">SMCDiff</a></td><td>Cα / E(3)-equivariant GNN</td><td>protein motif scaffolding。</td><td class="p3">P3</td></tr>
+<tr><td>2023</td><td><a href="https://www.nature.com/articles/s43588-023-00440-3">ProteinSGM</a></td><td>inter-residue image-like geometry</td><td>score-based de novo protein generation。</td><td class="p3">P3</td></tr>
+<tr><td>2023</td><td><a href="https://proceedings.mlr.press/v202/lin23a.html">Genie</a></td><td>oriented residue frames / Cα</td><td>equivariant diffusion 生成 designable / novel / diverse backbones。</td><td class="p2">P2</td></tr>
+<tr><td>2023</td><td><a href="https://proceedings.mlr.press/v202/yim23a/yim23a.pdf">FrameDiff</a></td><td>SE(3) residue frames</td><td>principled SE(3) diffusion。</td><td class="p1">P1</td></tr>
+<tr><td>2023</td><td><a href="https://www.nature.com/articles/s41586-023-06415-8">RFdiffusion</a></td><td>SE(3) + RoseTTAFold</td><td>pretrained folding network → protein design diffusion。</td><td class="p2">P2</td></tr>
+<tr><td>2023</td><td><a href="https://www.nature.com/articles/s41586-023-06728-8">Chroma</a></td><td>backbone atoms + GNN</td><td>programmable protein generation + external constraints。</td><td class="p2">P2</td></tr>
+<tr><td>2023/24</td><td><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11228509/">Protpardelle</a></td><td>all-atom + sequence/sidechain superposition</td><td>joint all-atom structure / sequence generation。</td><td class="p3">P3</td></tr>
+</table>
+
+<h3>C. Flow Matching 進入 protein backbone</h3>
+<table>
+<tr><th>年</th><th>論文</th><th>提出什麼</th><th>few-step 意義</th><th>優先</th></tr>
+<tr><td>2023</td><td><a href="https://mlanthology.org/iclr/2023/lipman2023iclr-flow/">Flow Matching for Generative Modeling</a></td><td>vector-field regression + CNF。</td><td>trajectory / solver / path 可以被明確操作。</td><td class="p1">P1</td></tr>
+<tr><td>2024</td><td><a href="https://proceedings.iclr.cc/paper_files/paper/2024/hash/618c95f4557c15b253fb0e6f548ea0c0-Abstract-Conference.html">FoldFlow</a></td><td>SE(3)-Stochastic FM + Riemannian OT。</td><td>為後續 few-step SE(3) 奠基。</td><td class="p1">P1</td></tr>
+<tr><td>2023/24</td><td><a href="https://arxiv.org/abs/2310.05297">FrameFlow</a></td><td>FrameDiff → SE(3) FM。</td><td>報告約 5× fewer sampling timesteps。</td><td class="p1">P1</td></tr>
+<tr><td>2024</td><td><a href="https://arxiv.org/abs/2405.20313">FoldFlow-2</a></td><td>sequence-conditioned SE(3) FM。</td><td>未來不只 trajectory，sequence / reward 也一起進 flow。</td><td class="p2">P2</td></tr>
+</table>
+
+<h3>D. Few-step / one-step</h3>
+<table>
+<tr><th>年</th><th>論文</th><th>策略</th><th>重要訊息</th><th>優先</th></tr>
+<tr><td>2025</td><td><a href="https://proceedings.iclr.cc/paper_files/paper/2025/hash/559a0998fab1d19b80e7e43a5852401c-Abstract-Conference.html">Shortcut Models</a></td><td>condition on desired step size。</td><td>few-step 不是單純「Euler 大步」；模型可學 long transition。</td><td class="p2">P2</td></tr>
+<tr><td>2025</td><td><a href="https://www.alphaxiv.org/abs/2502.00688">High-Order Matching</a></td><td>velocity + acceleration + jerk。</td><td>大跨距 transition 需要更完整 trajectory information。</td><td class="p1">P1</td></tr>
+<tr><td>2025</td><td><a href="https://arxiv.org/abs/2505.13447">MeanFlow</a></td><td>average velocity。</td><td>one/few-step 核心轉為長時距動態學習。</td><td class="p1">P1</td></tr>
+<tr><td>2025</td><td><a href="https://proceedings.mlr.press/v267/yue25c.html">ReQFlow</a></td><td>quaternion flow + rectification。</td><td>protein-specific rotation representation + acceleration。</td><td class="p1">P1</td></tr>
+<tr><td>2025</td><td><a href="https://arxiv.org/abs/2510.03095">SiD-Protein</a></td><td>score distillation + multistep + noise modulation。</td><td>naive adaptation 會極低 designability；需要 protein-specific adjustment。</td><td class="p1">P1</td></tr>
+<tr><td>2026</td><td><a href="https://arxiv.org/abs/2607.27431">SE(3)-MeanFlow</a></td><td>MeanFlow on Lie groups，so(3)+R³。</td><td>few-step regime 優勢更明顯；適合你下週報告。</td><td class="p1">P1</td></tr>
+</table>
+
+<h3>E. Physical / geometric correction / guidance</h3>
+<table>
+<tr><th>年</th><th>論文</th><th>介入位置</th><th>訊號</th><th>和你題目的界線</th></tr>
+<tr><td>2023</td><td><a href="https://www.nature.com/articles/s41586-023-06728-8">Chroma</a></td><td>conditional sampling</td><td>symmetry / shape / substructure</td><td>constraint 可改 generation，但不是 failure-triggered few-step correction。</td></tr>
+<tr><td>2025</td><td><a href="https://doi.org/10.1186/s13321-025-01053-w">Neural SHAKE</a></td><td>每個 reverse step</td><td>distance、bond、angle、dihedral</td><td>hard projection 每步做；可當 fixed-correction baseline。</td></tr>
+<tr><td>2025</td><td><a href="https://proceedings.mlr.press/v267/feng25s.html">On the Guidance of Flow Matching</a></td><td>flow vector field</td><td>general energy / gradient guidance</td><td>提供 signal→flow 的理論工具；非 protein-specific。</td></tr>
+<tr><td>2025</td><td><a href="https://proceedings.mlr.press/v267/lu25b.html">Physical Feedback</a></td><td>model alignment</td><td>physical-model energy feedback</td><td>feedback 已存在，但任務是 ensemble alignment。</td></tr>
+<tr><td>2025</td><td><a href="https://proceedings.mlr.press/v267/zhou25w.html">Energy-Based Flow Matching</a></td><td>training + iterative inference</td><td>energy perspective / stability</td><td>不是 intermediate violation-triggered adaptive correction。</td></tr>
+<tr><td>2025</td><td><a href="https://arxiv.org/abs/2509.25379">Let Physics Guide Your Protein Flows</a></td><td>noising / flow construction</td><td>preserve bonds、avoid collision、topology</td><td>physics 是 process inductive bias，不是 selective inference correction。</td></tr>
+<tr><td>2025/26</td><td><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12633033/">Constrained Diffusion + ADMM</a></td><td>predict-clean → prox → renoise</td><td>bond lengths / angles / chirality / topology</td><td>hard constraint；可當 correction baseline。</td></tr>
+<tr><td>2026</td><td><a href="https://proceedings.iclr.cc/paper_files/paper/2026/hash/c13954c76bfd454b2810d0a79d1777d6-Abstract-Conference.html">ProteinGS</a></td><td>training + inference projection</td><td>steric feasibility / physical constraints</td><td><b>非常接近你的交集</b>：2-step + physical validity，因此你不能只 claim「physics+few-step」。</td></tr>
+</table>
+
+<h2>四、少步問題的歷史演變</h2>
+<div class="two">
+<div class="card"><h3>1. 早期：sampling cost</h3><p>問題被理解成 reverse steps / NFE 太多。主要工具：solver、flow matching、OT path、distillation。</p></div>
+<div class="card"><h3>2. 中期：trajectory approximation</h3><p>Shortcut / High-Order / MeanFlow 開始問：一個 long transition 到底要預測什麼，不再只是把 step size 放大。</p></div>
+<div class="card"><h3>3. Protein-specific：geometry / representation</h3><p>SE(3)、quaternion、local frame 讓「少步」變成 manifold 上的問題。SiD-Protein 也顯示 vision distillation 不能直接搬。</p></div>
+<div class="card"><h3>4. 現在：few-step × validity</h3><p>Hard projection、proximal correction、differentiable physical layers 已進場。最新競爭點正在從「快」轉為「快而不破壞幾何／物理」。</p></div>
+</div>
+
+<h2>五、文獻回答到哪裡？</h2>
+<table>
+<tr><th>問題</th><th>文獻已知</th><th>仍值得研究</th><th>最直接 paper</th></tr>
+<tr><td><b>Q1 Few-step 會出現什麼 failure？</b></td><td>endpoint designability / scRMSD / diversity 在某些少步設定下降；也有 steric validity 問題。</td><td><b>trajectory-level onset profile</b>：bond/angle/clash/frame 異常究竟何時開始？是否有先後順序？</td><td>SiD-Protein、SE(3)-MeanFlow、ProteinGS</td></tr>
+<tr><td><b>Q2 中間 physical signal 能預測 final failure 嗎？</b></td><td>constraint 可以算，也可以改 generation。</td><td><b>predictive value</b>：需處理 noise-level confounding；早期 noisy 不等於必然失敗。</td><td>Neural SHAKE、ADMM</td></tr>
+<tr><td><b>Q3 能否讓 signal 決定何時 correction？</b></td><td>fixed per-step projection、proximal correction、training-integrated projection 都存在。</td><td><b>violation-triggered selective intervention</b>：safe 不修、risky 才 extra step / projection / smaller step / rollback。</td><td>Neural SHAKE、ProteinGS、Guidance of FM</td></tr>
+</table>
+
+<h2>六、可量化 failure 指標</h2>
+<table>
+<tr><th>層級</th><th>例子</th><th>意義</th><th>適合 intermediate monitoring?</th></tr>
+<tr><td>局部幾何</td><td>bond length deviation、bond angle deviation、Cα–Cα abnormal distance</td><td>backbone 是否局部合理</td><td><b>高</b>：便宜、解析可算</td></tr>
+<tr><td>碰撞</td><td>steric clash count、minimum non-bonded distance</td><td>原子是否過度接近</td><td><b>高</b></td></tr>
+<tr><td>方向 / frame</td><td>torsion abnormality、local frame consistency</td><td>orientation 與 local geometry</td><td>中高</td></tr>
+<tr><td>全局結構</td><td>radius of gyration、secondary-structure / topology consistency</td><td>整體 fold</td><td>中</td></tr>
+<tr><td>能量</td><td>force-field / learned energy</td><td>物理 plausibility proxy</td><td>中低：較貴；energy ≠ correctness</td></tr>
+<tr><td>endpoint quality</td><td>scRMSD、scTM、designability、diversity、novelty</td><td>最終可用性</td><td>低：更適合 label，不是 cheap trigger</td></tr>
+</table>
+<div class="note"><b>實驗設計關鍵：</b>不要直接把 raw violation magnitude 當 failure。中間 state 原本就可能很 noisy，因此最好考慮 time/noise normalization，例如 <code>R(x_t,t)</code> 相對同一 t 的正常分布，而不是全程一個固定 threshold。</div>
+
+<h2>七、主流方向與未來推測</h2>
+<svg viewBox="0 0 1000 610" aria-label="研究方向地圖">
+<text x="500" y="35" fill="#e8ecf7" text-anchor="middle" font-size="22" font-weight="700">Molecular / Protein Generation Research Map (2026)</text>
+<line x1="110" y1="520" x2="920" y2="520" stroke="#7790c8" stroke-width="2"/><line x1="110" y1="520" x2="110" y2="85" stroke="#7790c8" stroke-width="2"/>
+<text x="520" y="575" fill="#b6c1da" text-anchor="middle" font-size="16">Inference acceleration / step reduction →</text>
+<text x="30" y="300" fill="#b6c1da" text-anchor="middle" font-size="16" transform="rotate(-90 30 300)">Physical / geometric intervention strength →</text>
+<text x="115" y="545" fill="#7f8ca8" font-size="13">many-step</text><text x="840" y="545" fill="#7f8ca8" font-size="13">few / 1–2 step</text><text x="62" y="515" fill="#7f8ca8" font-size="13">low</text><text x="62" y="105" fill="#7f8ca8" font-size="13">high</text>
+<circle cx="240" cy="445" r="44" fill="#8bb8ff"/><text x="240" y="440" fill="#071020" text-anchor="middle" font-size="15" font-weight="700">Protein</text><text x="240" y="459" fill="#071020" text-anchor="middle" font-size="14">Diffusion</text>
+<circle cx="400" cy="410" r="49" fill="#8bb8ff"/><text x="400" y="405" fill="#071020" text-anchor="middle" font-size="15" font-weight="700">SE(3)</text><text x="400" y="424" fill="#071020" text-anchor="middle" font-size="14">Flow Matching</text>
+<circle cx="700" cy="420" r="55" fill="#9de0c7"/><text x="700" y="414" fill="#07150f" text-anchor="middle" font-size="15" font-weight="700">Few-step</text><text x="700" y="434" fill="#07150f" text-anchor="middle" font-size="13">MeanFlow / Distill</text>
+<circle cx="350" cy="255" r="53" fill="#9de0c7"/><text x="350" y="249" fill="#07150f" text-anchor="middle" font-size="14" font-weight="700">Physics-aware</text><text x="350" y="268" fill="#07150f" text-anchor="middle" font-size="13">noising / guidance</text>
+<circle cx="485" cy="175" r="57" fill="#9de0c7"/><text x="485" y="168" fill="#07150f" text-anchor="middle" font-size="14" font-weight="700">Hard constraint</text><text x="485" y="187" fill="#07150f" text-anchor="middle" font-size="13">projection / ADMM</text>
+<circle cx="755" cy="210" r="63" fill="#9de0c7"/><text x="755" y="198" fill="#07150f" text-anchor="middle" font-size="14" font-weight="700">ProteinGS</text><text x="755" y="217" fill="#07150f" text-anchor="middle" font-size="13">2-step + projection</text><text x="755" y="236" fill="#07150f" text-anchor="middle" font-size="12">train + inference</text>
+<ellipse cx="860" cy="105" rx="108" ry="60" fill="#ffd28a" stroke="#fff2c7" stroke-dasharray="6 5"/><text x="860" y="90" fill="#2b1a00" text-anchor="middle" font-size="14" font-weight="700">推測：Adaptive</text><text x="860" y="109" fill="#2b1a00" text-anchor="middle" font-size="13">physical monitoring</text><text x="860" y="128" fill="#2b1a00" text-anchor="middle" font-size="13">+ selective correction</text>
+</svg>
+
+<div class="grid" style="margin-top:14px">
+<div class="card"><h3>預測 1：fixed budget → adaptive budget</h3><p>根據 geometry / uncertainty / violation 決定是否多做 NFE，而不是所有 sample 固定 steps。</p></div>
+<div class="card"><h3>預測 2：endpoint → trajectory metrics</h3><p>極少步普及後，failure onset、recoverability、constraint residual 會比只看 final scRMSD 更重要。</p></div>
+<div class="card"><h3>預測 3：soft + hard hybrid</h3><p>soft steering 保持 manifold，必要時才 hard projection，可能比全程硬約束更平衡。</p></div>
+<div class="card"><h3>預測 4：backbone → all-atom / sequence co-generation</h3><p>failure 指標會擴到 sidechain、chemistry、sequence-structure coupling。</p></div>
+<div class="card"><h3>預測 5：Physics 變成 runtime controller</h3><p>不是只有 <code>L + λL_phys</code>，而是決定 step size、rollback、extra NFE、projection strength。</p></div>
+<div class="card"><h3>預測 6：geometry-aware long transitions</h3><p>MeanFlow / quaternion / Lie-group 方法暗示：少步主戰場會是「長距 transition 的 manifold-aware modeling」。</p></div>
+</div>
+
+<h2>八、研究位置</h2>
+<div class="bad"><b>不要 claim：</b><br>1)「Few-step protein generation 是新的」；2)「physics + few-step 是新的」；3)「physically valid 就等於 correct protein structure」。ProteinGS 已直接挑戰前兩個說法，第三個在概念上也不成立。</div>
+<div class="good"><b>較有機會成立的問題：</b><br><br><i>Can cheap physical / geometric signals characterize and predict failure onset along few-step protein generation trajectories, and can they trigger selective interventions that are more cost-effective and less disruptive than fixed projection or simply adding NFEs?</i></div>
+
+<h3>最小可驗證三階段</h3>
+<table>
+<tr><th>Stage</th><th>做什麼</th><th>成功條件</th><th>若失敗</th></tr>
+<tr><td>1 Characterize</td><td>同一 generator 改 steps/NFE，保存每個 intermediate state；量 bond/angle/Cα/clash/frame。</td><td>少步 failure 有穩定 pattern，且不是單純 noise magnitude。</td><td>沒有 trajectory signature 就不該急著做 controller。</td></tr>
+<tr><td>2 Predict</td><td>看早期/中期 residual 能否預測 final scRMSD / designability。</td><td>normalized physical signal 有 predictive value。</td><td>physics metric 可能只能診斷，不能當 trigger。</td></tr>
+<tr><td>3 Intervene</td><td>比 no correction / extra NFE / per-step projection / final relaxation / selective correction。</td><td>相近 compute 下，selective correction 改善 quality + validity。</td><td>若 simply extra NFE 更便宜有效，feedback 沒必要。</td></tr>
+</table>
+
+<h2>九、排序</h2>
+<ol>
+<li><b>SE(3)-MeanFlow (2026)</b>：主讀，理解 few-step protein 前沿。</li>
+<li><b>FrameDiff → FoldFlow / FrameFlow</b>：只抓 representation 與 diffusion→flow 脈絡。</li>
+<li><b>ProteinGS (2026)</b>：一定要讀摘要、方法圖、ablation，因為它直接影響你的 novelty。</li>
+<li><b>Neural SHAKE + ADMM constrained diffusion</b>：建立 correction baseline。</li>
+<li><b>SiD-Protein</b>：抓 few-step failure / designability，不必深陷 distillation 細節。</li>
+<li><b>High-Order Matching / MeanFlow</b>：補 long-transition reasoning。</li>
+</ol>
+
+<h2>十、綜述與 benchmark（用來補充）</h2>
+<ul>
+<li><a href="https://wires.onlinelibrary.wiley.com/doi/full/10.1002/wcms.1711">Diffusion models in protein structure and docking (WIREs, 2024)</a>：很適合查 FrameDiff / RFdiffusion / Genie 的 representation 與歷史脈絡。</li>
+<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11885034/">Sifting through the Noise: diffusion models & biomolecules survey</a>：補 molecular/protein diffusion 大圖。</li>
+<li><a href="https://journals.plos.org/ploscompbiol/article?id=10.1371%2Fjournal.pcbi.1014290">Scaffold-Lab (PLOS Comp Bio, 2026)</a>：統一 benchmark 多個 protein backbone generators。</li>
+</ul>
+
+<div class="footer">本頁是 research navigation / literature map，不是 systematic review。年份以正式 publication 或 preprint 首次出現時間為主。未來方向已明確標為推測，與已發表結果分開。</div>
+</main></body></html>
